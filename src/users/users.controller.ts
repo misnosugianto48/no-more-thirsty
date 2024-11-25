@@ -6,7 +6,6 @@ import {
   Patch,
   Param,
   Delete,
-  HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
@@ -22,7 +21,7 @@ import {
   ApiNotFoundResponse,
 } from '@nestjs/swagger';
 import { User } from './entities/user.entity';
-import { responseJson } from 'src/utils/response.utils';
+import { ResponseJson, responseJson } from 'src/utils/response-json.utils';
 
 @Controller('users')
 @ApiTags('users')
@@ -30,7 +29,6 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post('register')
-  @HttpCode(201)
   @ApiExtraModels(User)
   @ApiCreatedResponse({
     description: 'User Created',
@@ -65,13 +63,19 @@ export class UsersController {
       },
     },
   })
-  async create(@Body() createUserDto: CreateUserDto) {
-    return {
-      status: 'success',
-      message: 'user has been successfully created',
-      statusCode: HttpStatus.CREATED,
-      data: await this.usersService.create(createUserDto),
-    };
+  async create(@Body() createUserDto: CreateUserDto): Promise<
+    ResponseJson<{
+      id: string;
+      username: string;
+      createdAt: Date;
+      updatedAt: Date;
+    }>
+  > {
+    return responseJson(
+      'user has been successfully created',
+      HttpStatus.CREATED,
+      await this.usersService.create(createUserDto),
+    );
   }
 
   @Get()
@@ -98,13 +102,21 @@ export class UsersController {
       },
     },
   })
-  async findAll() {
-    return {
-      status: 'success',
-      message: 'successfully get all users',
-      statusCode: HttpStatus.OK,
-      data: await this.usersService.findAll(),
-    };
+  async findAll(): Promise<
+    ResponseJson<
+      {
+        id: string;
+        username: string;
+        createdAt: Date;
+        updatedAt: Date;
+      }[]
+    >
+  > {
+    return responseJson(
+      'success get all users',
+      HttpStatus.OK,
+      await this.usersService.findAll(),
+    );
   }
 
   @Get(':id')
@@ -143,9 +155,15 @@ export class UsersController {
       },
     },
   })
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string): Promise<
+    ResponseJson<{
+      id: string;
+      username: string;
+      createdAt: Date;
+      updatedAt: Date;
+    }>
+  > {
     return responseJson(
-      'success',
       'successfully get user',
       HttpStatus.OK,
       await this.usersService.findOne(id),
@@ -153,20 +171,113 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @ApiOkResponse({ type: User })
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(id, updateUserDto);
+  @ApiOkResponse({
+    description: 'Update User By Id',
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', example: 'success' },
+        message: {
+          type: 'string',
+          example: 'User has been successfully updated',
+        },
+        statusCode: {
+          example: 200,
+        },
+        data: {
+          example: {
+            id: 'U-sdadgaidg',
+          },
+        },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'User Error',
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', example: 'error' },
+        message: {
+          type: 'string',
+          example: 'username is too short',
+        },
+        statusCode: {
+          example: 400,
+        },
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'User Not Found',
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', example: 'error' },
+        message: {
+          type: 'string',
+          example: 'user not found',
+        },
+        statusCode: {
+          example: 404,
+        },
+      },
+    },
+  })
+  async update(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ): Promise<
+    ResponseJson<{
+      id: string;
+    }>
+  > {
+    return responseJson(
+      'user has been successfully updated',
+      HttpStatus.OK,
+      await this.usersService.update(id, updateUserDto),
+    );
   }
 
   @Delete(':id')
   @ApiOkResponse({
-    type: User,
+    description: 'Delete User By Id',
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', example: 'success' },
+        message: {
+          type: 'string',
+          example: 'User has been successfully deleted',
+        },
+        statusCode: {
+          example: 200,
+        },
+      },
+    },
   })
-  async remove(@Param('id') id: string) {
+  @ApiNotFoundResponse({
+    description: 'User Not Found',
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', example: 'error' },
+        message: {
+          type: 'string',
+          example: 'user not found',
+        },
+        statusCode: {
+          example: 404,
+        },
+      },
+    },
+  })
+  async remove(@Param('id') id: string): Promise<
+    ResponseJson<{
+      id: string;
+    }>
+  > {
     await this.usersService.remove(id);
-    return Response.json({
-      status: 'success',
-      statusCode: HttpStatus.OK,
-    });
+    return responseJson('user has been deleted', HttpStatus.OK);
   }
 }
